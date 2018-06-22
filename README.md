@@ -17,6 +17,12 @@ The 'git-sync' script takes a config.yml as a parameter which is formatted like 
 ```
 global:
     to: '/storage/git'
+publishers:
+  - type: 'rabbitmq'
+    host: 'mirror-host'
+    exchange: 'mirror-exchange'
+    username: 'guest'
+    password: 'guest'
 sources:
   - from: 'https://github.com/swi-infra/git-sync'
   - from: 'https://github.com/swi-infra/ruby-git'
@@ -30,9 +36,9 @@ sources:
       - '/meta.*/'
   - type: 'gerrit-rabbitmq'
     gerrit_host: 'gerrit-host'
-    exchange: 'gerrit.publish'
     username: 'myuser'
     from: 'git://gerrit-mirror/'
+    exchange: 'gerrit.publish'
     filters:
       - 'manifest'
       - '/meta.*/'
@@ -78,11 +84,11 @@ The rabbitmq exchange name is specifed with `exchange` parameter.
 ```
   - type: 'gerrit-rabbitmq'
     gerrit_host: 'gerrit-host'
-    exchange: 'gerrit.publish'
-    username: 'myuser'
+    gerrit_username: 'myuser'
     rabbitmq_host: 'other-host'
     rabbitmq_username: 'guest'
     rabbitmq_password: 'guest'
+    exchange: 'gerrit.publish'
     from: 'git://gerrit-mirror/'
     filters:
       - 'manifest'
@@ -94,3 +100,27 @@ Events through RabbitMQ are provided by the associated Gerrit plugin: https://ge
 By default the script will use the 'stream-events' command to listen for changes on project and re-synchronize them.
 It is possible to specify the ```oneshot: true``` option, either in global or in the gerrit source definition to prevent the re-sync.
 
+
+Events Publishing
+-------
+
+#### Publishers
+
+If a publisher is configured, the events received from the Gerrit host (as configured by Gerrit or
+Gerrit-RabbitMQ) are published to the downstream host. Events that do not require a Gerrit sync are
+published as soon as they are received; and events that do are queued for further processing. When
+a worker thread is ready to process an event queue, it first empties the event queue, perform one
+sync, and publish those events. This way we ensure that when those events are received by the
+downstream host, the associated sync is already completed.  Also we are saving some syncs by
+performing one sync for multiple events. The implication is that we are delaying the events requring
+sync, and the event arrive at the downstream host out-of-order.
+
+The only available publisher currently is RabbitMQ.
+
+```
+  - type: 'rabbitmq'
+    host: 'mirror-host'
+    exchange: 'mirror-exchange'
+    username: 'guest'
+    password: 'guest'
+```

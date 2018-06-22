@@ -5,19 +5,20 @@ require 'fileutils'
 require 'timeout'
 
 class GitSync::Source::Single < GitSync::Source::Base
-  attr_reader :from, :to
+  attr_reader :from, :to, :publishers
 
   EXIT_CORRUPTED = 3
 
-  def initialize(from, to, opts={})
-    super()
+  def initialize(from, to, publishers=[], opts={})
+    super(publishers)
+
     @dry_run = opts[:dry_run] || false
     @from = from
     @to = to
     @done = false
     @mutex = Mutex.new
     @queue = nil
-    @should_resync = false
+    @event_queue = Queue.new
 
     # If it's a local repository
     if @from.start_with? "/"
@@ -35,22 +36,39 @@ class GitSync::Source::Single < GitSync::Source::Base
     "<Source::Single '#{from}' -> '#{to}'>"
   end
 
+  def add_event(event)
+    @event_queue.push(event)
+  end
+
   def work(queue)
     @queue = queue
+
+    # Perform sync before forwarding messages so when the downstream client receives the messages,
+    # the updated data are available.
+    # If lock cannot be acquired, try again later.
     res = @mutex.try_lock
     if res
+      # Empty the event_queue and place the contents in a local queue.
+      event_queue_snapshot = Queue.new
+      until @event_queue.empty?
+        event_queue_snapshot.push @event_queue.pop
+      end
+
+      # Perform sync from Gerrit.
       sync!
       @mutex.unlock
 
-      if @should_resync
-        # Place ourselves back in the queue
-        @should_resync = false
+      # Publish the events requiring sync.
+      until event_queue_snapshot.empty?
+        event = event_queue_snapshot.pop
+        publish(event)
+      end
+
+      # If in the meantime there has been more events queued up, that implies their work request
+      # has not be fulfilled because they can't get a lock. Place ourselves back in the queue.
+      if not @event_queue.empty?
         queue.push self
       end
-    else
-      # Couldn't get the lock, but tell the current sync
-      # that it should resync when its done.
-      @should_resync = true
     end
   end
 

@@ -1,0 +1,6 @@
+[gerrit]
+host=gerrit-legato
+port=29418
+project=swi-infra/git-sync.git
+defaultbranch=master
+defaultremote=origin

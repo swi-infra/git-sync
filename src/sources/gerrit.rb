@@ -7,8 +7,9 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
   attr_accessor :filters
   attr_reader :host, :port, :username, :from, :to, :one_shot, :projects, :queue
 
-  def initialize(host, port, username, from, to, one_shot=false)
-    super()
+  def initialize(host, port, username, from, to, one_shot=false, publishers=[])
+    super(publishers)
+
     @host = host
     @port = port
     @username = username
@@ -87,7 +88,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
     # Init: replicate all projects
     remote_projects.each do |project_name|
-      queue_project(project_name)
+      queue_project(project_name, nil)
     end
 
     @done.signal
@@ -124,26 +125,31 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
           event_type = event["type"]
 
           case event_type
+          # Event requires sync.
           when "ref-updated",
                "patchset-created",
                "change-merged",
                "draft-published",
                "project-created" then
-            STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event_type}".green
+            STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event_type} requiring sync".green
             project_name = event["change"]["project"] if event["change"]
             project_name = event["refUpdate"]["project"] if event["refUpdate"]
             project_name = event["projectName"] if event["projectName"]
 
             raise "Unable to get project name for event #{event_type}: #{event}" if not project_name
 
-            queue_project(project_name)
+            queue_project(project_name, event)
+
+          # Event doesn't require sync. Publish events to downstream right away, if publishing is
+          # configured.
           else
-            STDERR.puts "[Gerrit #{host}:#{port}] Skipping event #{event["type"]}".yellow
+            STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event_type} not requiring sync".green
+            publish(event)
           end
         end
       rescue Exception => e
         STDERR.puts "[Gerrit #{host}:#{port}] Exception #{e.message}".red
-        STDERR.puts "[Gerrit #{host}:#{port}] #{e.backtrace.join("\n")}".red
+        STDERR.puts "[Gerrit #{host}:#{port}] Backtrace:\n#{e.backtrace.join("\n")}".red
       end
 
       delay = 5
@@ -166,11 +172,12 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
     p_from = File.join(@from, "#{project_name}")
     p_to = File.join(@to, "#{project_name}.git")
 
-    projects[project_name] = GitSync::Source::Single.new(p_from, p_to, dry_run: dry_run)
+    projects[project_name] = GitSync::Source::Single.new(p_from, p_to, @publishers, dry_run: dry_run)
   end
 
-  def queue_project(project_name)
+  def queue_project(project_name, event)
     project = task_project(project_name)
+    project.add_event(event) if event
     queue << project if project
   end
 

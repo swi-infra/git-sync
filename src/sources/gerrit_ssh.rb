@@ -3,6 +3,13 @@ require 'colored'
 
 class GitSync::Source::GerritSsh < GitSync::Source::Gerrit
 
+  def initialize(gerrit_host, gerrit_port, username,
+                 from, to,
+                 one_shot=false,
+                 publishers=[])
+    super(gerrit_host, gerrit_port, username, from, to, one_shot, publishers)
+  end
+
   def stream_events
     puts "[GerritSsh #{host}:#{port}] Streaming events through SSH (username: #{username})".blue
 
