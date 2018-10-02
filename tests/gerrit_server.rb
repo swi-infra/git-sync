@@ -10,6 +10,8 @@ class GerritServer
   def initialize(name)
     @name = name
     @start_count = 0
+    @auth_cookie = nil
+    @x_gerrit_auth = nil
 
     if ENV['GERRIT_CONTAINER_ID']
       @container = Docker::Container.get(ENV['GERRIT_CONTAINER_ID'])
@@ -200,7 +202,7 @@ class GerritServer
       raise "Unable to login"
     end
 
-    @auth_cookie = response.response['set-cookie'][/^(.*);/,1]
+    @auth_cookie = response.header['set-cookie'][/^(.*);/,1]
 
     # Get XSRF_TOKEN cookie
     path = "/"
@@ -212,7 +214,7 @@ class GerritServer
       raise "Unable to login"
     end
 
-    @x_gerrit_auth = response.response['set-cookie'][/^(.*);/,1]
+    @x_gerrit_auth = response.header['set-cookie'][/^(.*);/,1]
   end
 
   def auth_cookie

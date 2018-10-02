@@ -143,7 +143,7 @@ class GitSync::Source::Single < GitSync::Source::Base
           end
 
           begin
-            git.fetch("gitsync")
+            git.fetch("gitsync", :prune => true)
           rescue Git::GitExecuteError => e
             puts "[#{DateTime.now} #{to}] Issue with fetching: #{e}".red
             check_corrupted
