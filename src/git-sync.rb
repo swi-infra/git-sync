@@ -13,6 +13,8 @@ end
 
 require 'config.rb'
 
+require 'event.rb'
+
 require 'sources/base.rb'
 require 'sources/single.rb'
 require 'sources/gerrit.rb'

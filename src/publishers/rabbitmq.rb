@@ -25,7 +25,7 @@ class GitSync::Publisher::RabbitMQ < GitSync::Publisher::Base
   end
 
   def publish(event)
-    STDERR.puts "[PublisherRabbitMQ #{host}:#{port}:#{exchange}] Publishing event #{event["type"]}".green
+    STDERR.puts "[PublisherRabbitMQ #{host}:#{port}:#{exchange}] Publishing event #{event}".green
     @exchange_ref.publish(JSON.dump(event))
   end
 

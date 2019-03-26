@@ -69,7 +69,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
   def process_event(line)
     puts "[Gerrit #{host}:#{port}] Processing event".blue
-    GitSync::Event.new(line)
+    event = GitSync::Event.new(line)
     yield(event)
   end
 
