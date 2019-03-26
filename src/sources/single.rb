@@ -99,7 +99,7 @@ class GitSync::Source::Single < GitSync::Source::Base
   end
 
   def handle_corrupted
-    puts "[#{DateTime.now} #{to}] Corrupted".red
+    STDERR.puts "[#{DateTime.now} #{to}] Corrupted".red
     # Remove the complete repository by default
     FileUtils.rm_rf(to)
 

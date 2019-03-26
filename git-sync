@@ -40,6 +40,9 @@ if not config_path or not File.exists? config_path
   exit 1
 end
 
+# Disable stdout buffering
+STDOUT.sync = true
+
 puts "Loading config #{config_path} ...".blue
 config = GitSync::Config.new
 config.load_from_file config_path
