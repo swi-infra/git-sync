@@ -132,7 +132,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
             raise "Unable to get project name for event #{event}: #{event}" if not event.project_name
 
-            queue_event(event)
+            queue_project(event.project_name, event)
 
           # Event doesn't require sync. Publish events to downstream right away, if publishing is
           # configured.
@@ -169,10 +169,10 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
     projects[project_name] = GitSync::Source::Single.new(p_from, p_to, @publishers, dry_run: dry_run)
   end
 
-  def queue_event(event)
-    project = task_project(event.project_name)
+  def queue_project(project_name, event)
+    project = task_project(project_name)
     if project
-      project.add_event(event)
+      project.add_event(event) if event
       queue << project
     end
   end
