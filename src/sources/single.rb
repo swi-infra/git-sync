@@ -49,10 +49,13 @@ class GitSync::Source::Single < GitSync::Source::Base
     res = @mutex.try_lock
     if res
       # Empty the event_queue and place the contents in a local queue.
-      event_queue_snapshot = Queue.new
+      event_queue_snapshot = []
       until @event_queue.empty?
         event_queue_snapshot.push @event_queue.pop
       end
+
+      events = event_queue_snapshot.join(",")
+      puts "[#{DateTime.now} #{to}] Starting sync for events [#{events}] ..."
 
       # Perform sync from Gerrit.
       sync!
@@ -63,6 +66,8 @@ class GitSync::Source::Single < GitSync::Source::Base
         event = event_queue_snapshot.pop
         publish(event)
       end
+
+      puts "[#{DateTime.now} #{to}] Sync for events [#{events}] done (leftovers=#{@event_queue.length}) ..."
 
       # If in the meantime there has been more events queued up, that implies their work request
       # has not be fulfilled because they can't get a lock. Place ourselves back in the queue.

@@ -1,6 +1,5 @@
 require 'colored'
 require 'net/ssh'
-require 'json'
 require 'bunny'
 
 class GitSync::Source::Gerrit < GitSync::Source::Base
@@ -70,7 +69,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
   def process_event(line)
     puts "[Gerrit #{host}:#{port}] Processing event".blue
-    event = JSON.parse(line)
+    GitSync::Event.new(line)
     yield(event)
   end
 
@@ -122,28 +121,23 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
     loop do
       begin
         stream_events do |event|
-          event_type = event["type"]
-
-          case event_type
+          case event.type
           # Event requires sync.
           when "ref-updated",
                "patchset-created",
                "change-merged",
                "draft-published",
                "project-created" then
-            STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event_type} requiring sync".green
-            project_name = event["change"]["project"] if event["change"]
-            project_name = event["refUpdate"]["project"] if event["refUpdate"]
-            project_name = event["projectName"] if event["projectName"]
+            STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event} requiring sync".green
 
-            raise "Unable to get project name for event #{event_type}: #{event}" if not project_name
+            raise "Unable to get project name for event #{event}: #{event}" if not event.project_name
 
-            queue_project(project_name, event)
+            queue_event(event)
 
           # Event doesn't require sync. Publish events to downstream right away, if publishing is
           # configured.
           else
-            STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event_type} not requiring sync".green
+            STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event.type} not requiring sync".green
             publish(event)
           end
         end
@@ -175,10 +169,12 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
     projects[project_name] = GitSync::Source::Single.new(p_from, p_to, @publishers, dry_run: dry_run)
   end
 
-  def queue_project(project_name, event)
-    project = task_project(project_name)
-    project.add_event(event) if event
-    queue << project if project
+  def queue_event(event)
+    project = task_project(event.project_name)
+    if project
+      project.add_event(event)
+      queue << project
+    end
   end
 
   def check_local_projects(remote_projects)
