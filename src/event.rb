@@ -2,6 +2,7 @@ require 'colored'
 require 'json'
 
 class GitSync::Event
+  attr_reader :event
 
   def initialize(src)
     @event = JSON.parse(src)
@@ -32,5 +33,9 @@ class GitSync::Event
 
   def [](key)
     @event[key]
+  end
+
+  def as_json
+    JSON.dump(@event)
   end
 end
