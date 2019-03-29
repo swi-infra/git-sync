@@ -125,7 +125,11 @@ class GitSync::Source::Single < GitSync::Source::Base
   # Check that revision is present in the ref
   def check_ref(ref, revision)
     # First check that revision is present
-    if git.lib.object_type(revision) != "commit"
+    begin
+      if git.lib.object_type(revision) != "commit"
+        return false
+      end
+    rescue Git::GitExecuteError
       return false
     end
 
