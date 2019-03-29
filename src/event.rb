@@ -3,9 +3,11 @@ require 'json'
 
 class GitSync::Event
   attr_reader :event
+  attr_accessor :sync_count
 
   def initialize(src)
     @event = JSON.parse(src)
+    @sync_count = 0
   end
 
   def to_s
@@ -26,8 +28,16 @@ class GitSync::Event
   end
 
   def ref
-    return @event["change"]["ref"] if @event["change"]
+    return @event["refName"] if type == "change-merged"
+    return @event["patchSet"]["ref"] if @event["patchSet"]
     return @event["refUpdate"]["refName"] if @event["refUpdate"]
+    nil
+  end
+
+  def revision
+    return @event["newRev"] if @event["newRev"]
+    return @event["patchSet"]["revision"] if @event["patchSet"]
+    return @event["refUpdate"]["newRev"] if @event["refUpdate"]
     nil
   end
 
@@ -37,5 +47,15 @@ class GitSync::Event
 
   def as_json
     JSON.dump(@event)
+  end
+
+  def check_updated(source)
+    r = ref
+    rev = revision
+    if r and rev
+      return source.check_ref(r, rev)
+    end
+
+    true
   end
 end

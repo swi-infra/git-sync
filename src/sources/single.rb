@@ -64,7 +64,21 @@ class GitSync::Source::Single < GitSync::Source::Base
       # Publish the events requiring sync.
       until event_queue_snapshot.empty?
         event = event_queue_snapshot.pop
-        publish(event)
+
+        if not event.check_updated(self)
+          if event.sync_count >= 10
+            puts "[#{DateTime.now} #{to}] Unable to sync #{event} after 10 tries ..."
+            puts "[#{DateTime.now} #{to}] Publishing the event anyway ..."
+            publish(event)
+          else
+            # Re-queue the event
+            event.sync_count += 1
+            puts "[#{DateTime.now} #{to}] Check for #{event} failed [#{event.sync_count} tries], retrying ..."
+            add_event(event)
+          end
+        else
+          publish(event)
+        end
       end
 
       puts "[#{DateTime.now} #{to}] Sync for events [#{events}] done (leftovers=#{@event_queue.length}) ..."
@@ -106,6 +120,17 @@ class GitSync::Source::Single < GitSync::Source::Base
     # Exit the current process, as to warn the parent that there is
     # a corruption going on.
     exit EXIT_CORRUPTED
+  end
+
+  # Check that revision is present in the ref
+  def check_ref(ref, revision)
+    # First check that revision is present
+    if git.lib.object_type(revision) != "commit"
+      return false
+    end
+
+    # TODO: check that branch and tags contains the change
+    return true
   end
 
   def sync!
