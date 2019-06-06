@@ -73,8 +73,11 @@ class GitSync::Source::Single < GitSync::Source::Base
           else
             # Re-queue the event
             event.sync_count += 1
-            puts "[#{DateTime.now} #{to}] Check for #{event} failed [#{event.sync_count} tries], retrying ..."
-            add_event(event)
+            puts "[#{DateTime.now} #{to}] Check for #{event} failed [#{event.sync_count} tries], retrying in 10s..."
+            Thread.new {
+              sleep(10)
+              add_event(event)
+            }
           end
         else
           publish(event)
@@ -126,10 +129,13 @@ class GitSync::Source::Single < GitSync::Source::Base
   def check_ref(ref, revision)
     # First check that revision is present
     begin
-      if git.lib.object_type(revision) != "commit"
+      obj_type = git.lib.object_type(revision)
+      if obj_type != "commit":
+        STDERR.puts "[#{DateTime.now} #{to}] Revision #{revision} is of type #{obj_type}"
         return false
       end
-    rescue Git::GitExecuteError
+    rescue Git::GitExecuteError => e
+      STDERR.puts "[#{DateTime.now} #{to}] Issue when checking revision #{revision}: #{e}".red
       return false
     end
 

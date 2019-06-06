@@ -1,5 +1,5 @@
 [gerrit]
-host=gerrit-legato
+host=master.gerrit.legato
 port=29418
 project=swi-infra/git-sync.git
 defaultbranch=master
