@@ -129,13 +129,9 @@ class GitSync::Source::Single < GitSync::Source::Base
   def check_ref(ref, revision)
     # First check that revision is present
     begin
-      obj_type = git.lib.object_type(revision)
-      if obj_type != "commit":
-        STDERR.puts "[#{DateTime.now} #{to}] Revision #{revision} is of type #{obj_type}"
-        return false
-      end
+      git.show(revision)
     rescue Git::GitExecuteError => e
-      STDERR.puts "[#{DateTime.now} #{to}] Issue when checking revision #{revision}: #{e}".red
+      STDERR.puts "[#{DateTime.now} #{to}] Issue when checking revision #{revision}: #{e}".yellow
       return false
     end
 
