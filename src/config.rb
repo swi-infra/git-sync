@@ -72,6 +72,10 @@ class GitSync::Config
         one_shot = cfg["oneshot"] || global_one_shot
         source = GitSync::Source::GerritSsh.new(host, port, username, from, to, one_shot, publishers)
 
+        if cfg["key"]
+          source.keys.push(cfg["key"])
+        end
+
         if cfg["filters"]
           cfg["filters"].each do |filter|
             if filter.start_with? "/" and filter.end_with? "/"

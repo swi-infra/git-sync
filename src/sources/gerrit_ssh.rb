@@ -15,6 +15,7 @@ class GitSync::Source::GerritSsh < GitSync::Source::Gerrit
 
     Net::SSH.start(@host,
                    @username,
+                   keys: @keys,
                    keepalive: true,
                    keepalive_interval: 15,
                    port: @port) do |ssh|

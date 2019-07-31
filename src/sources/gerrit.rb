@@ -3,7 +3,7 @@ require 'net/ssh'
 require 'bunny'
 
 class GitSync::Source::Gerrit < GitSync::Source::Base
-  attr_accessor :filters
+  attr_accessor :filters, :keys
   attr_reader :host, :port, :username, :from, :to, :one_shot, :projects, :queue
 
   def initialize(host, port, username, from, to, one_shot=false, publishers=[])
@@ -12,6 +12,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
     @host = host
     @port = port
     @username = username
+    @keys = []
 
     @from = from
     if not @from
@@ -55,6 +56,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
     Net::SSH.start(@host,
                    @username,
+                   keys: @keys,
                    port: @port) do |ssh|
 
       list = ssh.exec!("gerrit ls-projects --type ALL")
