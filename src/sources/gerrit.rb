@@ -12,7 +12,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
     @host = host
     @port = port
     @username = username
-    @keys = []
+    @keys = nil
 
     @from = from
     if not @from
@@ -49,6 +49,16 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
     true
   end
 
+  def ssh_options
+    options = {
+      port: @port
+    }
+    if keys
+      options[:keys] = keys
+    end
+    options
+  end
+
   def ls_projects
     all_projects = []
 
@@ -56,8 +66,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
     Net::SSH.start(@host,
                    @username,
-                   keys: @keys,
-                   port: @port) do |ssh|
+                   ssh_options) do |ssh|
 
       list = ssh.exec!("gerrit ls-projects --type ALL")
       list.each_line do |line|

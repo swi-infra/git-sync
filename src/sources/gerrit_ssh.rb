@@ -13,12 +13,13 @@ class GitSync::Source::GerritSsh < GitSync::Source::Gerrit
   def stream_events
     puts "[GerritSsh #{host}:#{port}] Streaming events through SSH (username: #{username})".blue
 
+    options = ssh_options
+    options[:keepalive] = true
+    options[:keepalive_interval] = 15
+
     Net::SSH.start(@host,
                    @username,
-                   keys: @keys,
-                   keepalive: true,
-                   keepalive_interval: 15,
-                   port: @port) do |ssh|
+                   options) do |ssh|
 
       ssh.open_channel do |channel|
         channel.exec("gerrit stream-events") do |ch, success|

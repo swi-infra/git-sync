@@ -73,7 +73,7 @@ class GitSync::Config
         source = GitSync::Source::GerritSsh.new(host, port, username, from, to, one_shot, publishers)
 
         if cfg["key"]
-          source.keys.push(cfg["key"])
+          source.keys = [cfg["key"]]
         end
 
         if cfg["filters"]
