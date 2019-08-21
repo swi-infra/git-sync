@@ -168,23 +168,23 @@ class GitSync::Source::Single < GitSync::Source::Base
         pid = Process.fork {
           add_remote = true
 
-          # Look for the remove and if it needs to be updated
-          git.remotes.each do |remote|
-            next if remote.name != "gitsync"
-
-            if remote.url != from
-              git.remove_remote("gitsync")
-            else
-              add_remote = false
-              break
-            end
-          end
-
-          if add_remote
-            git.add_remote("gitsync", from, :mirror => 'fetch')
-          end
-
           begin
+            # Look for the remove and if it needs to be updated
+            git.remotes.each do |remote|
+              next if remote.name != "gitsync"
+
+              if remote.url != from
+                git.remove_remote("gitsync")
+              else
+                add_remote = false
+                break
+              end
+            end
+
+            if add_remote
+              git.add_remote("gitsync", from, :mirror => 'fetch')
+            end
+
             git.fetch("gitsync", :prune => true)
           rescue Git::GitExecuteError => e
             puts "[#{DateTime.now} #{to}] Issue with fetching: #{e}".red
