@@ -1,7 +1,7 @@
 require 'colored'
 require 'json'
 
-class GitSync::Event
+class GitSync::Event::Base
   attr_reader :event
   attr_accessor :sync_count
 

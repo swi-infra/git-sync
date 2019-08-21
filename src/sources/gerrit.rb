@@ -80,7 +80,7 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
   def process_event(line)
     puts "[Gerrit #{host}:#{port}] Processing event".blue
-    event = GitSync::Event.new(line)
+    event = GitSync::Event::Base.new(line)
     yield(event)
   end
 
@@ -98,7 +98,8 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
 
     # Init: replicate all projects
     remote_projects.each do |project_name|
-      queue_project(project_name, nil)
+      init_event = GitSync::Event::Init.new(project_name)
+      queue_project(project_name, init_event)
     end
 
     @done.signal
@@ -138,7 +139,8 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
                "patchset-created",
                "change-merged",
                "draft-published",
-               "project-created" then
+               "project-created",
+               "sync-init" then
             STDERR.puts "[Gerrit #{host}:#{port}] Handling event #{event} requiring sync".green
 
             raise "Unable to get project name for event #{event}: #{event}" if not event.project_name

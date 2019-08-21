@@ -58,14 +58,14 @@ class GitSync::Source::Single < GitSync::Source::Base
       puts "[#{DateTime.now} #{to}] Starting sync for events [#{events}] ..."
 
       # Perform sync from Gerrit.
-      sync!
+      sync_result = sync!
       @mutex.unlock
 
       # Publish the events requiring sync.
       until event_queue_snapshot.empty?
         event = event_queue_snapshot.pop
 
-        if not event.check_updated(self)
+        if not sync_result or not event.check_updated(self)
           if event.sync_count >= 10
             puts "[#{DateTime.now} #{to}] Unable to sync #{event} after 10 tries ..."
             puts "[#{DateTime.now} #{to}] Publishing the event anyway ..."
@@ -117,16 +117,16 @@ class GitSync::Source::Single < GitSync::Source::Base
     end
 
     handle_corrupted
+
+    # Exit the current process, as to warn the parent that there is
+    # a corruption going on.
+    exit EXIT_CORRUPTED
   end
 
   def handle_corrupted
     STDERR.puts "[#{DateTime.now} #{to}] Corrupted".red
     # Remove the complete repository by default
     FileUtils.rm_rf(to)
-
-    # Exit the current process, as to warn the parent that there is
-    # a corruption going on.
-    exit EXIT_CORRUPTED
   end
 
   # Check that revision is present in the ref
@@ -145,14 +145,16 @@ class GitSync::Source::Single < GitSync::Source::Base
 
   def sync!
     puts "Sync '#{from}' to '#{to} (dry run: #{dry_run})".blue
+    result = true
+    pid = nil
 
     should_clone = true
     should_clone = (Dir.entries(to).count <= 2) if File.exists?(to)
     if not should_clone and not File.exists?(File.join(to, "objects"))
       handle_corrupted
+      should_clone = true
     end
 
-    pid = nil
     if should_clone
       puts "[#{DateTime.now} #{to}] Cloning ..."
       if not dry_run
@@ -203,7 +205,7 @@ class GitSync::Source::Single < GitSync::Source::Base
             STDERR.puts "Fetch process #{pid} failed: #{status}".red
             case status
             when EXIT_CORRUPTED
-              @queue << self
+              result = false
             else
               STDERR.puts "Exit code #{status} not handled"
             end
@@ -225,12 +227,19 @@ class GitSync::Source::Single < GitSync::Source::Base
           Process.waitpid(pid)
         end
 
-        # Add ourselves back at the end of the queue in case of timeout
-        @queue << self
+        # Mark as failed in case of timeout
+        result = false
       end
+    end
+
+    # Add ourselves back at the end of the queue in case of failure
+    if not result
+      @queue << self
     end
 
     puts "[#{DateTime.now} #{to}] Done ..."
     @done = true
+
+    result
   end
 end

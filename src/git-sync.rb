@@ -9,11 +9,15 @@ module GitSync
 
   module Publisher
   end
+
+  module Event
+  end
 end
 
 require 'config.rb'
 
-require 'event.rb'
+require 'events/base.rb'
+require 'events/init.rb'
 
 require 'sources/base.rb'
 require 'sources/single.rb'
