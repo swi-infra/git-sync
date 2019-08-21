@@ -74,10 +74,11 @@ class GitSync::Source::Single < GitSync::Source::Base
             # Re-queue the event
             event.sync_count += 1
             puts "[#{DateTime.now} #{to}] Check for #{event} failed [#{event.sync_count} tries], retrying in 10s..."
-            Thread.new(self, event) { |s, e|
+            Thread.new(self, queue, event) { |s, q, e|
               begin
                 sleep(10)
                 s.add_event(e)
+                q.push s
               rescue => ex
                 STDERR.puts "Error while rescheduling event #{e}: #{ex}".red
               end
