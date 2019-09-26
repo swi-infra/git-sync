@@ -144,6 +144,41 @@ class GitSync::Source::Single < GitSync::Source::Base
     return true
   end
 
+  def update_symref(from, to)
+    begin
+      # Query the symbolic ref from remote if any
+      remote_refs = git.ls_remote(["--symref", "#{from}"])
+
+      remote_refs.each do |line|
+        sym_ref = (/^ref: +(?<sha>[^ ]+)\t(?<name>[^ ]+)/i).match(line)
+
+        if sym_ref
+          from_symref_sha = sym_ref[:sha]
+          from_symref_name = sym_ref[:name]
+
+          if not from_symref_name.nil? and not from_symref_sha.nil?
+            # Get current symbolic ref from local
+            begin
+              to_symref_sha = git.symbolic_ref(["#{from_symref_name}"])[0]
+            rescue Git::GitExecuteError => e
+              to_symref_sha = nil
+            end
+
+            # Update local symref
+            if to_symref_sha.nil? or not from_symref_sha.eql? to_symref_sha
+              puts "Update symref: #{from}[#{from_symref_sha}] != #{to}[#{to_symref_sha}]".yellow
+              git.symbolic_ref(["#{from_symref_name}", "#{from_symref_sha}"])
+            else
+              puts "Skip updating symref: #{from}[#{from_symref_sha}] = #{to}[#{to_symref_sha}]"
+            end
+          end
+        end
+      end
+    rescue Git::GitExecuteError => e
+      puts "[#{DateTime.now} #{from}] Issue with updating symref: #{e}".red
+    end
+  end
+
   def sync!
     puts "Sync '#{from}' to '#{to} (dry run: #{dry_run})".blue
     result = true
@@ -191,6 +226,8 @@ class GitSync::Source::Single < GitSync::Source::Base
             puts "[#{DateTime.now} #{to}] Issue with fetching: #{e}".red
             check_corrupted
           end
+
+          update_symref(from, to)
         }
       end
     end
