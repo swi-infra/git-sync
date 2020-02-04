@@ -16,7 +16,17 @@ if ! id $SYNC_USER > /dev/null 2>&1; then
         deluser $SYNC_UID
     fi
 
-    adduser -h "$SYNC_HOME" -u $SYNC_UID -s /bin/sh -D $SYNC_USER $SYNC_GID
+    addgroup --system \
+             --gid $SYNC_GID \
+             $SYNC_GROUP
+
+    adduser --system \
+            --home "$SYNC_HOME" \
+            --uid $SYNC_UID \
+            --gid $SYNC_GID \
+            --shell /bin/sh \
+            --disabled-password \
+            $SYNC_USER
 
     if [ -e "$SYNC_HOME/.ssh" ]; then
         chown -R $SYNC_UID:$SYNC_GID $SYNC_HOME/.ssh

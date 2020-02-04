@@ -1,6 +1,9 @@
-FROM ruby:2.6-alpine
+FROM ruby:2.6
 
-RUN apk add --no-cache git build-base
+RUN apt-get update && \
+    apt-get install -yy git && \
+    apt-get -y -q autoclean && \
+    apt-get -y -q autoremove
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
