@@ -4,6 +4,8 @@ gem 'awesome_print'
 gem 'colored'
 gem 'git', git: "https://github.com/swi-infra/ruby-git", branch: "master"
 gem 'net-ssh'
+gem 'ed25519'
+gem 'bcrypt_pbkdf'
 gem 'facter'
 gem 'rake'
 gem 'bunny'
