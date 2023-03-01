@@ -1,0 +1,40 @@
+# Docker build and push
+
+name: Build and push
+on:
+  push:
+    branches: ["master"]
+  # Run manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  TAGS: |
+    ${{ secrets.DOCKER_ACR_REGISTRY }}/swi-infra/git-sync:latest,
+    quay.io/swi-infra/git-sync:latest
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Azure registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.DOCKER_ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+      - name: Login to Quay registry
+        uses: docker/login-action@v2
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+      - name: Build and push
+        id: build-image
+        uses: docker/build-push-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: ${{ env.TAGS }}
+          push: true
