@@ -146,6 +146,10 @@ class GitSync::Source::Gerrit < GitSync::Source::Base
             raise "Unable to get project name for event #{event}: #{event}" if not event.project_name
 
             queue_project(event.project_name, event)
+            if event.project_name == "manifest"
+              STDERR.puts "[Gerrit #{host}:#{port}] Triggering sync for repo/manifest.git due to event in manifest.git".green
+              queue_project("repo/manifest", event)
+            end
 
           # Event doesn't require sync. Publish events to downstream right away, if publishing is
           # configured.
