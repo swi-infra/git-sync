@@ -2,7 +2,7 @@ class GitSync::Source::Base
   attr_accessor :timeout, :dry_run
 
   def initialize(publishers)
-    @timeout = 20*60
+    @timeout = 90*60
     @dry_run = false
     @publishers = publishers
   end

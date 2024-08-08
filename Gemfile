@@ -1,5 +1,6 @@
 source "https://rubygems.org"
 
+gem "ffi", "= 1.16.3"
 gem 'awesome_print'
 gem 'colored'
 gem 'git', git: "https://github.com/swi-infra/ruby-git", branch: "master"

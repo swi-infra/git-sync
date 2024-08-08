@@ -252,7 +252,7 @@ class GitSync::Source::Single < GitSync::Source::Base
 
       # In case of timeout, send a series of SIGTERM and SIGKILL
       rescue Timeout::Error
-        STDERR.puts "Timeout: sending TERM to #{pid}".red
+        STDERR.puts "Timeout for #{to}: sending TERM to #{pid}".red
         Process.kill("TERM", pid)
 
         begin
@@ -260,7 +260,7 @@ class GitSync::Source::Single < GitSync::Source::Base
             Process.waitpid(pid)
           }
         rescue Timeout::Error
-          STDERR.puts "Timeout: sending KILL to #{pid}".red
+          STDERR.puts "Timeout for #{to}: sending KILL to #{pid}".red
           Process.kill("KILL", pid)
           Process.waitpid(pid)
         end
